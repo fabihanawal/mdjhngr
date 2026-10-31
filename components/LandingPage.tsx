@@ -126,7 +126,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
       
       {/* 1. HERO SLIDESHOW SECTION */}
       <section 
-        className="relative min-h-[580px] md:h-[680px] w-full overflow-hidden bg-emerald-950 select-none"
+        className="relative min-h-[680px] sm:min-h-[620px] lg:h-[700px] w-full overflow-hidden bg-emerald-950 select-none pb-12 sm:pb-0"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
@@ -139,72 +139,72 @@ const LandingPage: React.FC<LandingPageProps> = ({
                 isActive ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 pointer-events-none z-0'
               }`}
             >
-              {/* Background with blur and lighting */}
-              <div className="absolute inset-0 bg-gradient-to-r from-emerald-950 via-emerald-950/90 to-emerald-900/40">
+              {/* Background gradient with subtle overlay */}
+              <div className="absolute inset-0 bg-gradient-to-b from-emerald-950/95 via-emerald-950/90 to-emerald-900/90 lg:bg-gradient-to-r lg:from-emerald-950 lg:via-emerald-950/95 lg:to-emerald-900/60">
                 <img
                   src={slide.imageUrl}
                   alt={slide.title}
-                  className="w-full h-full object-cover mix-blend-overlay opacity-40 transition-transform duration-[6000ms] ease-out"
+                  className="w-full h-full object-cover mix-blend-overlay opacity-25 transition-transform duration-[6000ms] ease-out"
                   style={{ transform: isActive ? 'scale(1.08)' : 'scale(1.0)' }}
                 />
               </div>
 
               {/* Slide Content */}
-              <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-12 md:py-0">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center w-full">
+              <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-6 sm:py-8 lg:py-0">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-center w-full">
                   
+                  {/* Candidate Poster Display - Prominent and fully framed on mobile & desktop */}
+                  <div className="lg:col-span-5 order-1 lg:order-2 flex justify-center">
+                    <div className="relative group max-w-[260px] sm:max-w-[320px] lg:max-w-[380px] rounded-3xl overflow-hidden border-2 sm:border-4 border-emerald-400/40 shadow-2xl bg-emerald-900/60 backdrop-blur-sm">
+                      <img
+                        src={slide.imageUrl}
+                        alt="মুহাম্মদ জাহাঙ্গীর আলম - চেয়ারম্যান পদপ্রার্থী"
+                        className="w-full max-h-[260px] sm:max-h-[320px] lg:max-h-[440px] object-contain sm:object-cover mx-auto rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                      />
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-950 via-emerald-950/90 to-transparent p-3 sm:p-4 text-center">
+                        <p className="text-white font-black text-sm sm:text-base lg:text-lg">মুহাম্মদ জাহাঙ্গীর আলম</p>
+                        <p className="text-emerald-300 text-[10px] sm:text-xs font-semibold">চেয়ারম্যান পদপ্রার্থী | ১ নং বদলগাছী ইউনিয়ন পরিষদ</p>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Text Column */}
-                  <div className="lg:col-span-7 space-y-6 text-white animate-in slide-in-from-left-8 duration-700">
-                    <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-800/80 border border-emerald-400/40 backdrop-blur-md text-emerald-300 text-xs font-bold tracking-wider uppercase shadow-lg">
-                      <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                  <div className="lg:col-span-7 order-2 lg:order-1 space-y-3 sm:space-y-5 text-white text-center lg:text-left animate-in slide-in-from-left-6 duration-700">
+                    <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-emerald-800/80 border border-emerald-400/40 backdrop-blur-md text-emerald-300 text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-md">
+                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                       <span>{slide.badge || '১ নং বদলগাছী ইউনিয়ন পরিষদ নির্বাচন'}</span>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       {slide.subtitle && (
-                        <p className="text-emerald-300 font-bold text-lg md:text-xl tracking-wide">
+                        <p className="text-emerald-300 font-bold text-sm sm:text-lg tracking-wide">
                           {slide.subtitle}
                         </p>
                       )}
-                      <h1 className="text-3xl sm:text-5xl md:text-6xl font-black leading-tight tracking-tight drop-shadow-md">
+                      <h1 className="text-2xl sm:text-4xl lg:text-6xl font-black leading-tight tracking-tight drop-shadow-md">
                         {slide.title}
                       </h1>
                     </div>
 
-                    <p className="text-base sm:text-lg md:text-xl text-emerald-100/90 max-w-2xl leading-relaxed font-medium">
+                    <p className="text-xs sm:text-base lg:text-lg text-emerald-100/90 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
                       {slide.description}
                     </p>
 
-                    <div className="flex flex-wrap gap-4 pt-4">
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2 sm:pt-4">
                       <Link 
                         to="/report" 
-                        className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black px-8 py-4 rounded-2xl flex items-center shadow-xl shadow-emerald-500/30 transition-all hover:-translate-y-1 active:scale-95 text-base"
+                        className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black px-6 sm:px-8 py-3.5 rounded-2xl flex items-center shadow-xl shadow-emerald-500/30 transition-all hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
                       >
-                        <PlusCircle className="mr-2 w-5 h-5 text-emerald-950" />
+                        <PlusCircle className="mr-2 w-4 h-4 text-emerald-950" />
                         সমস্যা বা উন্নয়ন প্রস্তাব জানান
                       </Link>
                       
                       <a 
                         href="#services" 
-                        className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-bold px-7 py-4 rounded-2xl transition-all shadow-lg flex items-center"
+                        className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-bold px-5 sm:px-7 py-3.5 rounded-2xl transition-all shadow-lg flex items-center text-xs sm:text-sm"
                       >
-                        নাগরিক সেবা ও তথ্য <ChevronRight className="ml-1 w-5 h-5" />
+                        নাগরিক সেবা ও তথ্য <ChevronRight className="ml-1 w-4 h-4" />
                       </a>
-                    </div>
-                  </div>
-
-                  {/* Candidate Poster Display Column */}
-                  <div className="lg:col-span-5 flex justify-center lg:justify-end">
-                    <div className="relative group max-w-[320px] sm:max-w-[380px] rounded-3xl overflow-hidden border-4 border-emerald-400/30 shadow-2xl bg-emerald-900/50 backdrop-blur-sm">
-                      <img
-                        src={slide.imageUrl}
-                        alt="মুহাম্মদ জাহাঙ্গীর আলম - চেয়ারম্যান পদপ্রার্থী"
-                        className="w-full h-auto object-cover rounded-2xl transition-transform duration-500 group-hover:scale-105"
-                      />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-950 via-emerald-950/80 to-transparent p-4 text-center">
-                        <p className="text-white font-black text-lg">মুহাম্মদ জাহাঙ্গীর আলম</p>
-                        <p className="text-emerald-300 text-xs font-semibold">চেয়ারম্যান পদপ্রার্থী | ১ নং বদলগাছী ইউনিয়ন পরিষদ</p>
-                      </div>
                     </div>
                   </div>
 
@@ -217,27 +217,27 @@ const LandingPage: React.FC<LandingPageProps> = ({
         {/* Navigation Arrows */}
         <button
           onClick={handlePrevSlide}
-          className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-emerald-900/60 hover:bg-emerald-800 text-white flex items-center justify-center border border-emerald-700/50 backdrop-blur-md transition-all shadow-lg hidden sm:flex"
+          className="absolute left-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-emerald-900/70 hover:bg-emerald-800 text-white flex items-center justify-center border border-emerald-700/50 backdrop-blur-md transition-all shadow-lg hidden sm:flex"
           aria-label="Previous slide"
         >
-          <ChevronLeft className="w-6 h-6" />
+          <ChevronLeft className="w-5 h-5" />
         </button>
         <button
           onClick={handleNextSlide}
-          className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-12 h-12 rounded-full bg-emerald-900/60 hover:bg-emerald-800 text-white flex items-center justify-center border border-emerald-700/50 backdrop-blur-md transition-all shadow-lg hidden sm:flex"
+          className="absolute right-3 top-1/2 -translate-y-1/2 z-30 w-10 h-10 rounded-full bg-emerald-900/70 hover:bg-emerald-800 text-white flex items-center justify-center border border-emerald-700/50 backdrop-blur-md transition-all shadow-lg hidden sm:flex"
           aria-label="Next slide"
         >
-          <ChevronRight className="w-6 h-6" />
+          <ChevronRight className="w-5 h-5" />
         </button>
 
         {/* Slide Indicators / Dots */}
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex space-x-3 z-30">
+        <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 flex space-x-2.5 z-30">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
-              className={`h-2.5 rounded-full transition-all duration-300 ${
-                index === currentSlide ? 'bg-emerald-400 w-10' : 'bg-white/30 hover:bg-white/60 w-3'
+              className={`h-2 rounded-full transition-all duration-300 ${
+                index === currentSlide ? 'bg-emerald-400 w-8' : 'bg-white/30 hover:bg-white/60 w-2.5'
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />
@@ -245,30 +245,54 @@ const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
-      {/* 2. EMERGENCY HOTLINE TICKER STRIP */}
-      <section className="bg-emerald-700 text-white py-3 px-4 shadow-md">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3 text-sm">
-          <div className="flex items-center space-x-2 font-bold">
-            <span className="bg-red-500 text-white text-[11px] font-black px-2.5 py-1 rounded-full uppercase animate-pulse">জরুরি সেবা</span>
-            <span>বদলগাছী ২৪ ঘণ্টা হটলাইন:</span>
+      {/* 2. COMPACT, NON-INTRUSIVE EMERGENCY HOTLINE BAR */}
+      <section className="bg-emerald-800 text-white py-2 px-3 sm:px-4 shadow-sm border-t border-emerald-700">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
+          <div className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-emerald-700">
+            <span className="w-2 h-2 rounded-full bg-red-400 animate-ping"></span>
+            <span className="text-[11px] font-black uppercase text-amber-300 tracking-wider">জরুরি হটলাইন:</span>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold">
-            <span className="flex items-center gap-1.5 bg-emerald-800/80 px-3 py-1.5 rounded-lg border border-emerald-600">
-              <Phone className="w-3.5 h-3.5 text-amber-300" />
-              অ্যাম্বুলেন্স: <a href="tel:01715778899" className="text-amber-200 hover:underline font-bold">০১৭১৫-৭৭৮৮৯৯</a>
-            </span>
-            <span className="flex items-center gap-1.5 bg-emerald-800/80 px-3 py-1.5 rounded-lg border border-emerald-600">
-              <Phone className="w-3.5 h-3.5 text-blue-300" />
-              থানা পুলিশ: <a href="tel:01320143522" className="text-blue-200 hover:underline font-bold">০১৩২০-১৪৩৫২২</a>
-            </span>
-            <span className="flex items-center gap-1.5 bg-emerald-800/80 px-3 py-1.5 rounded-lg border border-emerald-600">
-              <Phone className="w-3.5 h-3.5 text-rose-300" />
-              জরুরি রক্তদান: <a href="tel:01718445566" className="text-rose-200 hover:underline font-bold">০১৭১৮-৪৪৫৫৬৬</a>
-            </span>
-            <span className="flex items-center gap-1.5 bg-emerald-800/80 px-3 py-1.5 rounded-lg border border-emerald-600">
-              <Phone className="w-3.5 h-3.5 text-emerald-300" />
-              হাসপাতাল: <a href="tel:01730324500" className="text-emerald-200 hover:underline font-bold">০১৭৩০-৩২৪৫০০</a>
-            </span>
+
+          <div className="flex items-center gap-2 text-xs font-semibold shrink-0">
+            <a 
+              href="tel:01715778899"
+              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
+            >
+              <Phone className="w-3 h-3 text-amber-300" />
+              <span>অ্যাম্বুলেন্স: <strong className="text-white">০১৭১৫-৭৭৮৮৯৯</strong></span>
+            </a>
+
+            <a 
+              href="tel:01320143522"
+              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
+            >
+              <Phone className="w-3 h-3 text-blue-300" />
+              <span>থানা পুলিশ: <strong className="text-white">০১৩২০-১৪৩৫২২</strong></span>
+            </a>
+
+            <a 
+              href="tel:01718445566"
+              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
+            >
+              <Phone className="w-3 h-3 text-rose-300" />
+              <span>রক্তদান: <strong className="text-white">০১৭১৮-৪৪৫৫৬৬</strong></span>
+            </a>
+
+            <a 
+              href="tel:01730324500"
+              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
+            >
+              <Phone className="w-3 h-3 text-emerald-300" />
+              <span>হাসপাতাল: <strong className="text-white">০১৭৩০-৩২৪৫০০</strong></span>
+            </a>
+
+            <a 
+              href="tel:01716123456"
+              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
+            >
+              <Phone className="w-3 h-3 text-yellow-300" />
+              <span>ফায়ার সার্ভিস: <strong className="text-white">০১৭১৬-১২৩৪৫৬</strong></span>
+            </a>
           </div>
         </div>
       </section>
