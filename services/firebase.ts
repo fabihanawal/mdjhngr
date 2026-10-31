@@ -40,8 +40,18 @@ googleProvider.setCustomParameters({
   prompt: 'select_account'
 });
 
-// Authorized admin email
+// Authorized admin email & dynamic check
 export const AUTHORIZED_ADMIN_EMAIL = 'rstsbd@gmail.com';
+
+export function checkIsAdmin(email?: string | null, additionalEmails?: string[]): boolean {
+  if (!email) return false;
+  const target = email.toLowerCase().trim();
+  if (target === AUTHORIZED_ADMIN_EMAIL.toLowerCase()) return true;
+  if (additionalEmails && Array.isArray(additionalEmails)) {
+    return additionalEmails.some(e => e.toLowerCase().trim() === target);
+  }
+  return false;
+}
 
 // Error Handler conforming strictly to FirestoreErrorInfo requirement
 export enum OperationType {

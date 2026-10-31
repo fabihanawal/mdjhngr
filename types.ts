@@ -69,6 +69,7 @@ export interface CandidateProfile {
   upazila: string;
   district: string;
   slogan: string;
+  sloganSecondary?: string;
   image: string;
   bannerImage?: string;
   bio: string;
@@ -81,6 +82,8 @@ export interface CandidateProfile {
   phone: string;
   email: string;
   officeAddress: string;
+  wards?: string[];
+  authorizedEmails?: string[];
 }
 
 // Backward-compatible alias for existing code

@@ -34,7 +34,13 @@ import {
   CheckCircle2,
   FileText,
   Sliders,
-  LogOut
+  LogOut,
+  Rocket,
+  Copy,
+  Check,
+  RotateCcw,
+  BookOpen,
+  Info
 } from 'lucide-react';
 import { 
   CitizenReport, 
@@ -46,7 +52,7 @@ import {
   ServiceCategory,
   EmergencyContact 
 } from '../types';
-import { CATEGORY_MAP, STATUS_MAP, STATUS_COLORS, SERVICE_CAT_MAP, WARDS_LIST } from '../constants';
+import { CATEGORY_MAP, STATUS_MAP, STATUS_COLORS, SERVICE_CAT_MAP, WARDS_LIST, INITIAL_CANDIDATE_DATA } from '../constants';
 import { summarizeReport, getActionPlan } from '../services/geminiService';
 import { 
   saveSlideToDb, 
@@ -105,6 +111,8 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const [aiSummary, setAiSummary] = useState('');
   const [aiAction, setAiAction] = useState('');
   const [adminNote, setAdminNote] = useState('');
+  const [showVercelModal, setShowVercelModal] = useState(false);
+  const [copiedVercel, setCopiedVercel] = useState(false);
 
   // Service Editor State
   const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
@@ -126,7 +134,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     subtitle: '',
     description: '',
     imageUrl: '/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg',
-    badge: '১ নং বদলগাছী ইউনিয়ন'
+    badge: 'উন্নয়নের অঙ্গীকার'
   });
 
   // News Editor State
@@ -141,16 +149,19 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
   });
 
   // Emergency Contact Form State
+  const [editingEmergencyId, setEditingEmergencyId] = useState<string | null>(null);
   const [emergencyForm, setEmergencyForm] = useState<Partial<EmergencyContact>>({
     title: '',
-    category: 'Hospital',
+    category: 'Ambulance',
     phone: '',
     availableHours: '২৪ ঘণ্টা',
-    location: 'বদলগাছী'
+    location: ''
   });
 
-  // Candidate Profile Temp State
+  // Candidate Profile Temp State (Full Customizability)
   const [profileForm, setProfileForm] = useState<CandidateProfile>(mpData);
+  const [wardsString, setWardsString] = useState<string>((mpData.wards || WARDS_LIST).join(', '));
+  const [emailsString, setEmailsString] = useState<string>((mpData.authorizedEmails || ['rstsbd@gmail.com']).join(', '));
 
   // Stats calculation
   const stats = useMemo(() => ({
@@ -310,7 +321,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
       subtitle: '',
       description: '',
       imageUrl: '/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg',
-      badge: '১ নং বদলগাছী ইউনিয়ন'
+      badge: 'উন্নয়নের অঙ্গীকার'
     });
     showToast(editingSlideId ? 'স্লাইড আপডেট হয়েছে' : 'নতুন স্লাইড যুক্ত হয়েছে');
   };
@@ -384,58 +395,185 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
     }
   };
 
-  // PROFILE SAVE
+  // EMERGENCY HOTLINES CRUD
+  const handleSaveEmergency = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!emergencyForm.title || !emergencyForm.phone) {
+      return showToast('সেবার নাম ও ফোন নম্বর প্রদান করুন', 'error');
+    }
+
+    const emId = editingEmergencyId || `em-${Date.now()}`;
+    const newEmObj: EmergencyContact = {
+      id: emId,
+      title: emergencyForm.title.trim(),
+      category: emergencyForm.category as any || 'Ambulance',
+      phone: emergencyForm.phone.trim(),
+      availableHours: emergencyForm.availableHours?.trim() || '২৪ ঘণ্টা',
+      location: emergencyForm.location?.trim()
+    };
+
+    if (setEmergencyContacts) {
+      setEmergencyContacts(prev => {
+        const exists = prev.some(e => e.id === emId);
+        if (exists) return prev.map(e => e.id === emId ? newEmObj : e);
+        return [...prev, newEmObj];
+      });
+    }
+
+    try {
+      await saveEmergencyContactToDb(newEmObj);
+    } catch (e) {
+      console.warn('Firestore emergency sync error:', e);
+    }
+
+    setEditingEmergencyId(null);
+    setEmergencyForm({
+      title: '',
+      category: 'Ambulance',
+      phone: '',
+      availableHours: '২৪ ঘণ্টা',
+      location: ''
+    });
+    showToast(editingEmergencyId ? 'জরুরি নম্বর আপডেট হয়েছে' : 'নতুন জরুরি নম্বর যুক্ত হয়েছে');
+  };
+
+  const handleDeleteEmergency = async (id: string) => {
+    if (window.confirm('জরুরি নম্বরটি মুছে ফেলতে চান?')) {
+      if (setEmergencyContacts) {
+        setEmergencyContacts(prev => prev.filter(e => e.id !== id));
+      }
+      try {
+        await deleteEmergencyContactFromDb(id);
+      } catch (e) {
+        console.warn('Firestore emergency delete error:', e);
+      }
+      showToast('জরুরি নম্বর মুছে ফেলা হয়েছে', 'error');
+    }
+  };
+
+  // PROFILE SAVE (Multi-Candidate White-Label Setup)
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    setMpData(profileForm);
+    
+    // Parse wards list
+    const parsedWards = wardsString
+      .split(',')
+      .map(w => w.trim())
+      .filter(w => w.length > 0);
+
+    // Parse authorized admin emails
+    const parsedEmails = emailsString
+      .split(',')
+      .map(e => e.trim().toLowerCase())
+      .filter(e => e.length > 0);
+
+    const updatedProfile: CandidateProfile = {
+      ...profileForm,
+      wards: parsedWards.length > 0 ? parsedWards : WARDS_LIST,
+      authorizedEmails: parsedEmails.length > 0 ? parsedEmails : ['rstsbd@gmail.com']
+    };
+
+    setMpData(updatedProfile);
     try {
-      await saveCandidateProfileToDb(profileForm);
+      await saveCandidateProfileToDb(updatedProfile);
     } catch (e) {
       console.warn('Firestore profile sync error:', e);
     }
-    showToast('প্রার্থী প্রোফাইল ও ইশতেহার সফলভাবে সংরক্ষিত হয়েছে');
+    showToast('প্রার্থীর তথ্য, এলাকা ও ইশতেহার সফলভাবে সংরক্ষিত হয়েছে');
+  };
+
+  // Template loader for showing clients / new candidates
+  const loadPresetTemplate = (type: 'badalgachhi' | 'radhanagar' | 'custom') => {
+    if (type === 'badalgachhi') {
+      setProfileForm(INITIAL_CANDIDATE_DATA);
+      setWardsString((INITIAL_CANDIDATE_DATA.wards || WARDS_LIST).join(', '));
+      setEmailsString((INITIAL_CANDIDATE_DATA.authorizedEmails || ['rstsbd@gmail.com']).join(', '));
+      showToast('১ নং বদলগাছী ইউনিয়নের তথ্য লোড করা হয়েছে');
+    } else if (type === 'radhanagar') {
+      const demoCandidate: CandidateProfile = {
+        ...INITIAL_CANDIDATE_DATA,
+        name: 'মোঃ আব্দুল করিম',
+        designation: 'চেয়ারম্যান পদপ্রার্থী',
+        union: '২ নং রাধানগর ইউনিয়ন পরিষদ',
+        upazila: 'সিংড়া',
+        district: 'নাটোর',
+        slogan: 'জনগণের সেবায় সৎ ও নিষ্ঠাবান আব্দুল করিম ভাই',
+        sloganSecondary: 'চলো গড়ি একটি আলোকিত ও নিরাপদ রাধানগর',
+        officeAddress: 'নির্বাচনী প্রধান কার্যালয়: রাধানগর বাজার মোড়, সিংড়া',
+        wards: ['১ নং ওয়ার্ড', '২ নং ওয়ার্ড', '৩ নং ওয়ার্ড', '৪ নং ওয়ার্ড', '৫ নং ওয়ার্ড', '৬ নং ওয়ার্ড', '৭ নং ওয়ার্ড', '৮ নং ওয়ার্ড', '৯ নং ওয়ার্ড']
+      };
+      setProfileForm(demoCandidate);
+      setWardsString(demoCandidate.wards!.join(', '));
+      setEmailsString('rstsbd@gmail.com, client@gmail.com');
+      showToast('২ নং রাধানগর ইউনিয়নের ডেমো তথ্য লোড করা হয়েছে');
+    } else {
+      const blankCandidate: CandidateProfile = {
+        ...INITIAL_CANDIDATE_DATA,
+        name: '',
+        designation: 'চেয়ারম্যান পদপ্রার্থী',
+        union: 'নতুন ইউনিয়ন পরিষদ',
+        upazila: '',
+        district: '',
+        slogan: '',
+        sloganSecondary: '',
+        officeAddress: ''
+      };
+      setProfileForm(blankCandidate);
+      setWardsString('১ নং ওয়ার্ড, ২ নং ওয়ার্ড, ৩ নং ওয়ার্ড, ৪ নং ওয়ার্ড, ৫ নং ওয়ার্ড, ৬ নং ওয়ার্ড, ৭ নং ওয়ার্ড, ৮ নং ওয়ার্ড, ৯ নং ওয়ার্ড');
+      showToast('নতুন প্রার্থীর জন্য খালি ফরম তৈরি করা হয়েছে');
+    }
   };
 
   return (
     <div className="max-w-7xl mx-auto my-8 px-4 sm:px-6 lg:px-8 space-y-8 animate-in fade-in duration-300">
       
-      {/* Top Banner & Title */}
+      {/* Top Banner & Title with Vercel & Multi-Candidate Action Buttons */}
       <div className="bg-emerald-950 text-white p-6 sm:p-8 rounded-3xl shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 border border-emerald-800">
         <div className="flex items-center gap-4 text-center sm:text-left">
-          <div className="w-16 h-16 rounded-2xl bg-emerald-800 flex items-center justify-center border border-emerald-600 shadow-inner">
+          <div className="w-16 h-16 rounded-2xl bg-emerald-800 flex items-center justify-center border border-emerald-600 shadow-inner shrink-0">
             <Layout className="w-8 h-8 text-emerald-300" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[11px] font-black uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-emerald-800 text-emerald-200">
-                অ্যাডমিন নিয়ন্ত্রণ কক্ষ
+                হোয়াইট-লেবেল ইউপি অ্যাডমিন
               </span>
-              <span className="text-xs text-emerald-300 font-semibold">rstsbd@gmail.com</span>
+              <span className="text-xs text-emerald-300 font-semibold">{mpData.union}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black mt-1">
-              ১ নং বদলগাছী ইউনিয়ন পরিষদ নির্বাচন পোর্টাল
+              {mpData.name || 'চেয়ারম্যান প্রার্থী'} — ডিজিটাল নাগরিক পোর্টাল
             </h1>
             <p className="text-xs sm:text-sm text-emerald-200 mt-0.5">
-              চেয়ারম্যান পদপ্রার্থী: মুহাম্মদ জাহাঙ্গীর আলম • ফায়ারবেস রিয়েলটাইম ডাটাবেজ
+              যেকোনো প্রার্থীর জন্য কাস্টমাইজযোগ্য • ফায়ারবেস ডাটাবেজ • ভারসেল রেডি
             </p>
           </div>
         </div>
 
-        {onLogout && (
+        {/* Action Controls */}
+        <div className="flex flex-wrap items-center gap-2.5">
           <button
-            onClick={onLogout}
-            className="flex items-center gap-2 bg-red-600/80 hover:bg-red-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs transition-all shadow"
+            onClick={() => setShowVercelModal(true)}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md"
           >
-            <LogOut className="w-4 h-4" /> লগআউট করুন
+            <Rocket className="w-4 h-4" /> ভারসেলে ডিপ্লয় নির্দেশিকা
           </button>
-        )}
+
+          {onLogout && (
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-2 bg-red-600/80 hover:bg-red-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow"
+            >
+              <LogOut className="w-4 h-4" /> লগআউট
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Navigation Tabs */}
       <div className="flex items-center space-x-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200">
         <button
           onClick={() => setActiveTab('reports')}
-          className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
             activeTab === 'reports' 
               ? 'bg-emerald-700 text-white shadow-md' 
               : 'bg-white text-slate-600 hover:bg-slate-100'
@@ -451,20 +589,44 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </button>
 
         <button
+          onClick={() => setActiveTab('profile')}
+          className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+            activeTab === 'profile' 
+              ? 'bg-emerald-700 text-white shadow-md' 
+              : 'bg-white text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <UserIcon className="w-4 h-4" />
+          <span>প্রার্থী ও এলাকা কনফিগারেশন</span>
+        </button>
+
+        <button
+          onClick={() => setActiveTab('emergency')}
+          className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+            activeTab === 'emergency' 
+              ? 'bg-emerald-700 text-white shadow-md' 
+              : 'bg-white text-slate-600 hover:bg-slate-100'
+          }`}
+        >
+          <Phone className="w-4 h-4" />
+          <span>জরুরি হটলাইন নম্বর ({emergencyContacts.length})</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab('services')}
-          className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
             activeTab === 'services' 
               ? 'bg-emerald-700 text-white shadow-md' 
               : 'bg-white text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Layers className="w-4 h-4" />
-          <span>শিক্ষা, স্বাস্থ্য ও সেবা সুবিধা ({services.length})</span>
+          <span>সেবা ও সুবিধাসমূহ ({services.length})</span>
         </button>
 
         <button
           onClick={() => setActiveTab('slideshow')}
-          className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
             activeTab === 'slideshow' 
               ? 'bg-emerald-700 text-white shadow-md' 
               : 'bg-white text-slate-600 hover:bg-slate-100'
@@ -476,34 +638,20 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
         <button
           onClick={() => setActiveTab('news')}
-          className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
+          className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
             activeTab === 'news' 
               ? 'bg-emerald-700 text-white shadow-md' 
               : 'bg-white text-slate-600 hover:bg-slate-100'
           }`}
         >
           <Newspaper className="w-4 h-4" />
-          <span>প্রচারণা সংবাদ ও নোটিশ ({news.length})</span>
-        </button>
-
-        <button
-          onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all whitespace-nowrap ${
-            activeTab === 'profile' 
-              ? 'bg-emerald-700 text-white shadow-md' 
-              : 'bg-white text-slate-600 hover:bg-slate-100'
-          }`}
-        >
-          <UserIcon className="w-4 h-4" />
-          <span>প্রার্থী প্রোফাইল ও ইশতেহার</span>
+          <span>প্রচারণা সংবাদ ({news.length})</span>
         </button>
       </div>
 
       {/* TAB 1: CITIZEN REPORTS */}
       {activeTab === 'reports' && (
         <div className="space-y-6">
-          
-          {/* Stats Bar */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
               <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">মোট আবেদন / রিপোর্ট</span>
@@ -523,7 +671,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          {/* Search & Filter */}
           <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col sm:flex-row gap-4 justify-between items-center">
             <div className="relative w-full sm:w-80">
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
@@ -553,7 +700,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
             </div>
           </div>
 
-          {/* Table / List */}
           <div className="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
@@ -634,11 +780,488 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {/* TAB 2: CANDIDATE PROFILE & MULTI-AREA WHITE-LABEL SETTINGS */}
+      {activeTab === 'profile' && (
+        <form onSubmit={handleSaveProfile} className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-sm space-y-8">
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b pb-4 gap-4">
+            <div>
+              <h3 className="text-xl font-black text-slate-900">
+                প্রার্থী, এলাকা ও হোয়াইট-লেবেল কনফিগারেশন
+              </h3>
+              <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                যেকোনো ইউনিয়নের চেয়ারম্যান প্রার্থীর তথ্য এখানে বসিয়ে সেভ করলেই পুরো পোর্টালটি নতুন প্রার্থীর তথ্যে রূপান্তর হবে।
+              </p>
+            </div>
+
+            {/* Template Presets */}
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs font-bold text-slate-500">প্রিসেট টেমপ্লেট:</span>
+              <button
+                type="button"
+                onClick={() => loadPresetTemplate('badalgachhi')}
+                className="text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold px-3 py-1.5 rounded-lg border border-emerald-200"
+              >
+                ১ নং বদলগাছী
+              </button>
+              <button
+                type="button"
+                onClick={() => loadPresetTemplate('radhanagar')}
+                className="text-xs bg-blue-50 hover:bg-blue-100 text-blue-800 font-bold px-3 py-1.5 rounded-lg border border-blue-200"
+              >
+                ২ নং রাধানগর
+              </button>
+              <button
+                type="button"
+                onClick={() => loadPresetTemplate('custom')}
+                className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-3 py-1.5 rounded-lg border border-slate-300"
+              >
+                নতুন খালি ফরম
+              </button>
+            </div>
+          </div>
+
+          {/* Section 1: Candidate Basic Information */}
+          <div className="space-y-4">
+            <h4 className="text-sm font-black text-emerald-800 uppercase tracking-wider">
+              ১. প্রার্থীর মৌলিক পরিচিতি ও নির্বাচনী এলাকা
+            </h4>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  প্রার্থীর পূর্ণ নাম *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: মুহাম্মদ জাহাঙ্গীর আলম"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  পদবী *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="চেয়ারম্যান পদপ্রার্থী"
+                  value={profileForm.designation}
+                  onChange={(e) => setProfileForm({ ...profileForm, designation: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  ইউনিয়ন পরিষদের নাম *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: ১ নং বদলগাছী ইউনিয়ন পরিষদ"
+                  value={profileForm.union}
+                  onChange={(e) => setProfileForm({ ...profileForm, union: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  উপজেলা
+                </label>
+                <input
+                  type="text"
+                  placeholder="যেমন: বদলগাছী"
+                  value={profileForm.upazila}
+                  onChange={(e) => setProfileForm({ ...profileForm, upazila: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  জেলা
+                </label>
+                <input
+                  type="text"
+                  placeholder="যেমন: নওগাঁ"
+                  value={profileForm.district}
+                  onChange={(e) => setProfileForm({ ...profileForm, district: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Campaign Slogans & Photos */}
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="text-sm font-black text-emerald-800 uppercase tracking-wider">
+              ২. নির্বাচনী স্লোগান ও ছবি
+            </h4>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  প্রধান নির্বাচনী স্লোগান *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: সুখে দুঃখে যাকে পাই, সে আমাদের জাহাঙ্গীর আলম ভাই"
+                  value={profileForm.slogan}
+                  onChange={(e) => setProfileForm({ ...profileForm, slogan: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  দ্বিতীয় স্লোগান বা আহ্বান
+                </label>
+                <input
+                  type="text"
+                  placeholder="যেমন: চলো একসাথে গড়ি বদলগাছী ইউনিয়ন"
+                  value={profileForm.sloganSecondary || ''}
+                  onChange={(e) => setProfileForm({ ...profileForm, sloganSecondary: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  প্রার্থীর ছবির URL বা পাথ *
+                </label>
+                <input
+                  type="text"
+                  placeholder="/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg"
+                  value={profileForm.image}
+                  onChange={(e) => setProfileForm({ ...profileForm, image: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-xs font-mono font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  পোস্টার / ব্যানারের ছবির URL
+                </label>
+                <input
+                  type="text"
+                  placeholder="/assets/aistudio/FB_IMG_1793299504888_0c7f0cbb.jpg"
+                  value={profileForm.bannerImage || ''}
+                  onChange={(e) => setProfileForm({ ...profileForm, bannerImage: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-xs font-mono font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Bio & Vision */}
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="text-sm font-black text-emerald-800 uppercase tracking-wider">
+              ৩. প্রার্থীর জীবনবৃত্তান্ত ও রূপকল্প
+            </h4>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                জীবনবৃত্তান্ত ও সেবামূলক কাজের ইতিহাস (Bio)
+              </label>
+              <textarea
+                rows={3}
+                value={profileForm.bio}
+                onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
+                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600 leading-relaxed"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                উন্নয়নের রূপকল্প ও ভিশন (Vision)
+              </label>
+              <textarea
+                rows={2}
+                value={profileForm.vision}
+                onChange={(e) => setProfileForm({ ...profileForm, vision: e.target.value })}
+                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600 leading-relaxed"
+              />
+            </div>
+          </div>
+
+          {/* Section 4: 9-Point Manifesto Editor */}
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="text-sm font-black text-emerald-800 uppercase tracking-wider">
+              ৪. উন্নয়নের ৯ দফা নির্বাচনী অঙ্গীকার ও ইশতেহার
+            </h4>
+            <p className="text-xs text-slate-500">
+              প্রতিটি ওয়ার্ড ও ইউনিয়নের জন্য প্রার্থীর অগ্রাধিকার অনুযায়ী ৯টি অঙ্গীকারের শিরোনাম ও বিস্তারিত পরিবর্তন করুন:
+            </p>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {profileForm.manifestoPoints.map((point, idx) => (
+                <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                  <span className="text-xs font-black text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                    অঙ্গীকার {idx + 1}
+                  </span>
+                  <input
+                    type="text"
+                    value={point.title}
+                    onChange={(e) => {
+                      const updated = [...profileForm.manifestoPoints];
+                      updated[idx].title = e.target.value;
+                      setProfileForm({ ...profileForm, manifestoPoints: updated });
+                    }}
+                    className="w-full p-2.5 rounded-lg border border-slate-200 text-xs font-bold outline-none focus:border-emerald-600"
+                    placeholder="অঙ্গীকারের শিরোনাম"
+                  />
+                  <textarea
+                    rows={3}
+                    value={point.details}
+                    onChange={(e) => {
+                      const updated = [...profileForm.manifestoPoints];
+                      updated[idx].details = e.target.value;
+                      setProfileForm({ ...profileForm, manifestoPoints: updated });
+                    }}
+                    className="w-full p-2.5 rounded-lg border border-slate-200 text-xs font-medium outline-none focus:border-emerald-600 leading-relaxed"
+                    placeholder="অঙ্গীকারের বিস্তারিত"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Section 5: Ward List & Authorized Admin Emails */}
+          <div className="space-y-4 pt-4 border-t">
+            <h4 className="text-sm font-black text-emerald-800 uppercase tracking-wider">
+              ৫. নির্বাচনী ওয়ার্ডসমূহ ও ক্লায়েন্ট অ্যাডমিন ইমেইল
+            </h4>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                ইউনিয়নের ওয়ার্ড বা এলাকার তালিকা (কমা দিয়ে আলাদা করুন)
+              </label>
+              <input
+                type="text"
+                value={wardsString}
+                onChange={(e) => setWardsString(e.target.value)}
+                placeholder="১ নং ওয়ার্ড, ২ নং ওয়ার্ড, ৩ নং ওয়ার্ড, ৪ নং ওয়ার্ড, ৫ নং ওয়ার্ড, ৬ নং ওয়ার্ড, ৭ নং ওয়ার্ড, ৮ নং ওয়ার্ড, ৯ নং ওয়ার্ড"
+                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+              />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                নাগরিকরা সমস্যা রিপোর্ট করার সময় এই তালিকা থেকে তাদের ওয়ার্ড বেছে নিতে পারবেন।
+              </span>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                অনুমোদিত অ্যাডমিন গুগল ইমেইলসমূহ (কমা দিয়ে আলাদা করুন)
+              </label>
+              <input
+                type="text"
+                value={emailsString}
+                onChange={(e) => setEmailsString(e.target.value)}
+                placeholder="rstsbd@gmail.com, client@gmail.com"
+                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600 font-mono text-xs"
+              />
+              <span className="text-[11px] text-slate-400 mt-1 block">
+                এখানে যেসকল জিমেইল অ্যাড্রেস যোগ করবেন, তারা গুগল সাইন-ইন দিয়ে সরাসরি অ্যাডমিন প্যানেলে লগইন করতে পারবেন।
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  নির্বাচনী প্রধান কার্যালয়ের ঠিকানা
+                </label>
+                <input
+                  type="text"
+                  value={profileForm.officeAddress}
+                  onChange={(e) => setProfileForm({ ...profileForm, officeAddress: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  অফিসিয়াল যোগাযোগ ইমেইল
+                </label>
+                <input
+                  type="email"
+                  value={profileForm.email}
+                  onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full sm:w-auto bg-emerald-600 hover:bg-emerald-700 text-white font-black px-10 py-4 rounded-2xl transition-all shadow-xl shadow-emerald-600/20 flex items-center justify-center gap-2 text-sm"
+          >
+            <Save className="w-5 h-5" /> সম্পূর্ণ পোর্টাল সেভ ও লাইভ আপডেট করুন
+          </button>
+        </form>
+      )}
+
+      {/* TAB 3: EMERGENCY HOTLINES MANAGER */}
+      {activeTab === 'emergency' && (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Hotline Form */}
+          <div className="lg:col-span-5 bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+            <h3 className="font-black text-slate-900 text-lg">
+              {editingEmergencyId ? 'জরুরি নম্বর সম্পাদনা' : 'নতুন জরুরি হটলাইন যোগ করুন'}
+            </h3>
+            <p className="text-xs text-slate-500">
+              এলাকার অ্যাম্বুলেন্স, থানা পুলিশ, হাসপাতাল, ফায়ার সার্ভিস বা বিদ্যুৎ হেল্পলাইন নম্বর যোগ করুন:
+            </p>
+
+            <form onSubmit={handleSaveEmergency} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  সেবার ধরন / ক্যাটাগরি *
+                </label>
+                <select
+                  value={emergencyForm.category}
+                  onChange={(e) => setEmergencyForm({ ...emergencyForm, category: e.target.value as any })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                >
+                  <option value="Ambulance">🚑 অ্যাম্বুলেন্স (Ambulance)</option>
+                  <option value="Hospital">🏥 উপজেলা হাসপাতাল / স্বাস্থ্যকেন্দ্র</option>
+                  <option value="Police">🚓 থানা পুলিশ (Police)</option>
+                  <option value="Fire">🚒 ফায়ার সার্ভিস ও সিভিল ডিফেন্স</option>
+                  <option value="Blood">🩸 জরুরি রক্তদান সমন্বয়ক</option>
+                  <option value="Electricity">⚡ পল্লী বিদ্যুৎ অভিযোগ কেন্দ্র</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  সেবা বা প্রতিষ্ঠানের নাম *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="যেমন: বদলগাছী থানা পুলিশ (ডিউটি অফিসার)"
+                  value={emergencyForm.title}
+                  onChange={(e) => setEmergencyForm({ ...emergencyForm, title: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                  মোবাইল / হটলাইন ফোন নম্বর *
+                </label>
+                <input
+                  type="tel"
+                  required
+                  placeholder="০১৭১১-XXXXXX"
+                  value={emergencyForm.phone}
+                  onChange={(e) => setEmergencyForm({ ...emergencyForm, phone: e.target.value })}
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600 font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    উপলব্ধতা / সময়
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="২৪ ঘণ্টা"
+                    value={emergencyForm.availableHours || ''}
+                    onChange={(e) => setEmergencyForm({ ...emergencyForm, availableHours: e.target.value })}
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
+                    কার্যালয় / অবস্থান
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="বদলগাছী সদর"
+                    value={emergencyForm.location || ''}
+                    onChange={(e) => setEmergencyForm({ ...emergencyForm, location: e.target.value })}
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-black py-3.5 rounded-xl transition-all shadow-md flex items-center justify-center gap-2 text-sm"
+              >
+                <Save className="w-4 h-4" />
+                <span>{editingEmergencyId ? 'আপডেট করুন' : 'হটলাইন যোগ করুন'}</span>
+              </button>
+            </form>
+          </div>
+
+          {/* Hotline List */}
+          <div className="lg:col-span-7 space-y-4">
+            <h3 className="font-black text-slate-900 text-lg">
+              বর্তমান জরুরি হটলাইনসমূহ ({emergencyContacts.length})
+            </h3>
+
+            <div className="space-y-3">
+              {emergencyContacts.map((em) => (
+                <div
+                  key={em.id}
+                  className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between gap-4 hover:border-emerald-400 transition-colors"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
+                        {em.category}
+                      </span>
+                      <span className="text-xs text-slate-400">{em.availableHours}</span>
+                    </div>
+                    <h4 className="font-black text-slate-900 text-base">{em.title}</h4>
+                    <p className="text-sm font-mono font-bold text-emerald-700">{em.phone}</p>
+                    {em.location && <p className="text-xs text-slate-500">অবস্থান: {em.location}</p>}
+                  </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={() => {
+                        setEditingEmergencyId(em.id);
+                        setEmergencyForm(em);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="p-2 text-slate-600 hover:text-emerald-700 hover:bg-slate-100 rounded-lg"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEmergency(em.id)}
+                      className="p-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
         </div>
       )}
 
-      {/* TAB 2: SERVICES MANAGER */}
+      {/* TAB 4: SERVICES MANAGER */}
       {activeTab === 'services' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
@@ -684,7 +1307,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: অসচ্ছল ছাত্রছাত্রীদের জাহাঙ্গীর আলম শিক্ষাবৃত্তি"
+                  placeholder="যেমন: অসচ্ছল ছাত্রছাত্রীদের মেধা বৃত্তি"
                   value={serviceForm.title}
                   onChange={(e) => setServiceForm({ ...serviceForm, title: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
@@ -737,7 +1360,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="যেমন: বদলগাছী বাজার মোড়"
+                    placeholder="যেমন: পরিষদ কার্যালয়"
                     value={serviceForm.location || ''}
                     onChange={(e) => setServiceForm({ ...serviceForm, location: e.target.value })}
                     className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
@@ -747,7 +1370,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                  অনলাইন লিংক বা আবেদন ওয়েব লিঙ্ক
+                  অনলাইন লিংক বা আবেদন লিঙ্ক
                 </label>
                 <input
                   type="url"
@@ -839,7 +1462,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 3: SLIDESHOW MANAGER */}
+      {/* TAB 5: SLIDESHOW MANAGER */}
       {activeTab === 'slideshow' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
@@ -856,7 +1479,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: সুখে দুঃখে যাকে পাই, সে আমাদের জাহাঙ্গীর আলম ভাই"
+                  placeholder="স্লাইডের আকর্ষণীয় স্লোগান বা শিরোনাম"
                   value={slideForm.title}
                   onChange={(e) => setSlideForm({ ...slideForm, title: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
@@ -869,7 +1492,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 </label>
                 <input
                   type="text"
-                  placeholder="যেমন: ১ নং বদলগাছী ইউনিয়ন পরিষদ নির্বাচন"
+                  placeholder="যেমন: ইউনিয়ন পরিষদ নির্বাচন"
                   value={slideForm.subtitle || ''}
                   onChange={(e) => setSlideForm({ ...slideForm, subtitle: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
@@ -901,24 +1524,6 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   onChange={(e) => setSlideForm({ ...slideForm, imageUrl: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600 font-mono text-xs"
                 />
-                
-                {/* Fast presets with candidate images */}
-                <div className="flex flex-wrap gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setSlideForm({ ...slideForm, imageUrl: '/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg' })}
-                    className="text-[11px] bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-bold"
-                  >
-                    পোস্টার ১ (সুখে দুঃখে যাকে পাই)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setSlideForm({ ...slideForm, imageUrl: '/assets/aistudio/FB_IMG_1793299504888_0c7f0cbb.jpg' })}
-                    className="text-[11px] bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-lg text-slate-700 font-bold"
-                  >
-                    পোস্টার ২ (চলো একসাথে গড়ি)
-                  </button>
-                </div>
               </div>
 
               <div>
@@ -1001,7 +1606,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 4: NEWS & RALLY UPDATES */}
+      {/* TAB 6: NEWS & ANNOUNCEMENTS */}
       {activeTab === 'news' && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
@@ -1018,7 +1623,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <input
                   type="text"
                   required
-                  placeholder="যেমন: ১ নং বদলগাছীর বিভিন্ন ওয়ার্ডে উঠান বৈঠক ও গণসংযোগ"
+                  placeholder="নির্বাচনী গণসংযোগ বা সংবাদ শিরোনাম"
                   value={newsForm.title}
                   onChange={(e) => setNewsForm({ ...newsForm, title: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
@@ -1032,7 +1637,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                 <textarea
                   required
                   rows={4}
-                  placeholder="গণসংযোগ, আলোচনা সভা বা জনকল্যাণমূলক কর্মকাণ্ডের বিস্তারিত খবর..."
+                  placeholder="বিস্তারিত খবর ও কর্মসূচির বিবরণ..."
                   value={newsForm.content}
                   onChange={(e) => setNewsForm({ ...newsForm, content: e.target.value })}
                   className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
@@ -1057,7 +1662,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="যেমন: প্রচারণা / মতবিনিময়"
+                    placeholder="প্রচারণা / মতবিনিময়"
                     value={newsForm.category || ''}
                     onChange={(e) => setNewsForm({ ...newsForm, category: e.target.value })}
                     className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
@@ -1135,115 +1740,86 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({
         </div>
       )}
 
-      {/* TAB 5: CANDIDATE PROFILE & MANIFESTO */}
-      {activeTab === 'profile' && (
-        <form onSubmit={handleSaveProfile} className="bg-white p-6 sm:p-10 rounded-3xl border border-slate-200 shadow-sm space-y-6">
-          <div className="border-b pb-4">
-            <h3 className="text-xl font-black text-slate-900">
-              চেয়ারম্যান পদপ্রার্থী পরিচিতি ও ৯ দফা নির্বাচনী ইশতেহার
-            </h3>
-            <p className="text-slate-500 text-xs sm:text-sm mt-1">
-              প্রার্থীর নাম, নির্বাচনী স্লোগান, বায়ো এবং রূপকল্পের তথ্য সম্পাদনা করুন।
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                প্রার্থীর নাম *
-              </label>
-              <input
-                type="text"
-                required
-                value={profileForm.name}
-                onChange={(e) => setProfileForm({ ...profileForm, name: e.target.value })}
-                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
-              />
+      {/* VERCEL DEPLOYMENT & CLIENT SHOWCASE MODAL */}
+      {showVercelModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-md animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto space-y-6">
+            
+            <div className="flex items-center justify-between border-b pb-4">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center">
+                  <Rocket className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-900">Vercel Deployment & Client Setup Guide</h3>
+                  <p className="text-xs text-slate-500 font-semibold">ভারসেলে লাইভ করা এবং ক্লায়েন্টকে দেখানোর গাইড</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowVercelModal(false)}
+                className="text-slate-400 hover:text-slate-700 font-bold text-xl p-1"
+              >
+                ✕
+              </button>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                পদবী ও নির্বাচনী এলাকা *
-              </label>
-              <input
-                type="text"
-                required
-                value={profileForm.designation}
-                onChange={(e) => setProfileForm({ ...profileForm, designation: e.target.value })}
-                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
-              />
-            </div>
-          </div>
+            <div className="space-y-4 text-xs sm:text-sm text-slate-700 leading-relaxed">
+              <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-200">
+                <h4 className="font-bold text-emerald-900 mb-1 flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-700" /> Vercel কনফিগারেশন অলরেডি রেডি!
+                </h4>
+                <p className="text-emerald-800 text-xs">
+                  প্রজেক্টে <code>vercel.json</code> ফাইল তৈরি করা হয়েছে যা SPA রাউটিং সমর্থন করে। যেকোনো গিথাব অ্যাকাউন্ট থেকে ২ মিনিটে লাইভ করা যাবে।
+                </p>
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-              নির্বাচনী মূল স্লোগান
-            </label>
-            <input
-              type="text"
-              value={profileForm.slogan}
-              onChange={(e) => setProfileForm({ ...profileForm, slogan: e.target.value })}
-              className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
-            />
-          </div>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-2">১. GitHub ও Vercel দিয়ে ডিপ্লয় (প্রস্তাবিত):</h4>
+                <ol className="list-decimal pl-5 space-y-1.5 text-xs text-slate-600">
+                  <li>কোডগুলো আপনার GitHub রিপোজিটরিতে Push করুন।</li>
+                  <li><a href="https://vercel.com/new" target="_blank" rel="noopener noreferrer" className="text-blue-600 font-bold underline">vercel.com/new</a> তে গিয়ে আপনার GitHub রিপোজিটরিটি Import করুন।</li>
+                  <li>Framework: <strong>Vite</strong> সিলেক্ট থাকবে, Build Command: <code>npm run build</code>, Output: <code>dist</code>।</li>
+                  <li><strong>Deploy</strong> বাটনে চাপ দিন। ২ মিনিটে আপনার কাস্টম ডোমেইন বা <code>.vercel.app</code> লাইভ লিঙ্ক তৈরি হয়ে যাবে!</li>
+                </ol>
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-              জীবনবৃত্তান্ত ও সেবামূলক কাজের ইতিহাস (Bio)
-            </label>
-            <textarea
-              rows={4}
-              value={profileForm.bio}
-              onChange={(e) => setProfileForm({ ...profileForm, bio: e.target.value })}
-              className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600 leading-relaxed"
-            />
-          </div>
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-2">২. Vercel CLI দিয়ে এক কমান্ডে ডিপ্লয়:</h4>
+                <div className="bg-slate-900 text-emerald-400 p-3 rounded-xl font-mono text-xs flex items-center justify-between">
+                  <span>npx vercel --prod</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText('npx vercel --prod');
+                      setCopiedVercel(true);
+                      setTimeout(() => setCopiedVercel(false), 2000);
+                    }}
+                    className="text-slate-400 hover:text-white flex items-center gap-1 text-[11px]"
+                  >
+                    {copiedVercel ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                    <span>{copiedVercel ? 'কপি হয়েছে' : 'কপি করুন'}</span>
+                  </button>
+                </div>
+              </div>
 
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-              উন্নয়নের রূপকল্প ও ভিশন (Vision)
-            </label>
-            <textarea
-              rows={3}
-              value={profileForm.vision}
-              onChange={(e) => setProfileForm({ ...profileForm, vision: e.target.value })}
-              className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600 leading-relaxed"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                নির্বাচনী প্রধান কার্যালয়ের ঠিকানা
-              </label>
-              <input
-                type="text"
-                value={profileForm.officeAddress}
-                onChange={(e) => setProfileForm({ ...profileForm, officeAddress: e.target.value })}
-                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
-              />
+              <div>
+                <h4 className="font-bold text-slate-900 text-sm mb-1">৩. অন্য ক্লায়েন্ট বা প্রার্থীর কাছে কীভাবে হস্তান্তর করবেন?</h4>
+                <p className="text-xs text-slate-600">
+                  অ্যাডমিন প্যানেলের <strong>'প্রার্থী ও এলাকা কনফিগারেশন'</strong> ট্যাবে গিয়ে শুধু প্রার্থীর নাম, ইউনিয়ন, স্লোগান এবং ক্লায়েন্টের জিমেইল অ্যাড্রেস বসিয়ে 'সেভ' করে দিন। সাইটের সব তথ্য তাৎক্ষণিক সেই প্রার্থীর নামে রূপান্তর হয়ে যাবে!
+                </p>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1">
-                অফিসিয়াল যোগাযোগ ইমেইল
-              </label>
-              <input
-                type="email"
-                value={profileForm.email}
-                onChange={(e) => setProfileForm({ ...profileForm, email: e.target.value })}
-                className="w-full p-3 rounded-xl border border-slate-200 text-sm font-semibold outline-none focus:border-emerald-600"
-              />
+            <div className="pt-3 border-t text-right">
+              <button
+                onClick={() => setShowVercelModal(false)}
+                className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-6 py-2.5 rounded-xl text-xs"
+              >
+                ঠিক আছে
+              </button>
             </div>
-          </div>
 
-          <button
-            type="submit"
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-black px-8 py-3.5 rounded-xl transition-all shadow-md flex items-center gap-2 text-sm"
-          >
-            <Save className="w-4 h-4" /> প্রোফাইল ও ইশতেহার সংরক্ষণ করুন
-          </button>
-        </form>
+          </div>
+        </div>
       )}
 
       {/* REPORT DETAILS & ACTION MODAL */}

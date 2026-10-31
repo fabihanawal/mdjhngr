@@ -52,7 +52,8 @@ import {
   subscribeCandidateProfile, 
   subscribeEmergencyContacts,
   testConnection,
-  AUTHORIZED_ADMIN_EMAIL
+  AUTHORIZED_ADMIN_EMAIL,
+  checkIsAdmin
 } from './services/firebase';
 import { onAuthStateChanged, User as FirebaseUser } from 'firebase/auth';
 
@@ -94,6 +95,13 @@ const App: React.FC = () => {
 
   const [notification, setNotification] = useState<{message: string, type: 'success' | 'error'} | null>(null);
 
+  // Dynamic page title sync based on candidate profile
+  useEffect(() => {
+    if (mpData.name) {
+      document.title = `${mpData.name} - ${mpData.designation} | ${mpData.union}`;
+    }
+  }, [mpData]);
+
   // Test Firebase connection on mount
   useEffect(() => {
     testConnection();
@@ -104,14 +112,14 @@ const App: React.FC = () => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setCurrentUser(user);
       if (user) {
-        if (user.email === AUTHORIZED_ADMIN_EMAIL) {
+        if (checkIsAdmin(user.email, mpData.authorizedEmails)) {
           setIsAdminLoggedIn(true);
           localStorage.setItem('badalgachhi_admin_session', 'true');
         }
       }
     });
     return () => unsubscribe();
-  }, []);
+  }, [mpData.authorizedEmails]);
 
   // Realtime Firestore subscriptions with fallback
   useEffect(() => {
@@ -204,6 +212,7 @@ const App: React.FC = () => {
           onLogout={handleAdminLogout} 
           candidateName={mpData.name}
           union={mpData.union}
+          candidateImage={mpData.image}
         />
         
         {/* Toast Notification */}
@@ -237,8 +246,8 @@ const App: React.FC = () => {
                 />
               } 
             />
-            <Route path="/report" element={<ReportForm onSubmit={addReport} />} />
-            <Route path="/track" element={<TrackReport reports={reports} />} />
+            <Route path="/report" element={<ReportForm onSubmit={addReport} candidate={mpData} />} />
+            <Route path="/track" element={<TrackReport reports={reports} candidate={mpData} />} />
             <Route 
               path="/admin" 
               element={
@@ -263,6 +272,7 @@ const App: React.FC = () => {
                 ) : (
                   <AdminLogin 
                     currentUser={currentUser}
+                    candidate={mpData}
                     onLoginSuccess={() => {
                       setIsAdminLoggedIn(true);
                       localStorage.setItem('badalgachhi_admin_session', 'true');
@@ -288,7 +298,8 @@ const Navbar: React.FC<{
   onLogout: () => void;
   candidateName: string;
   union: string;
-}> = ({ isAdmin, onLogout, candidateName, union }) => {
+  candidateImage?: string;
+}> = ({ isAdmin, onLogout, candidateName, union, candidateImage }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
@@ -308,7 +319,7 @@ const Navbar: React.FC<{
           <Link to="/" className="flex items-center space-x-3 group">
             <div className="relative w-12 h-12 rounded-2xl overflow-hidden border-2 border-emerald-600 shadow-md group-hover:scale-105 transition-transform bg-emerald-900">
               <img 
-                src="/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg" 
+                src={candidateImage || '/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg'} 
                 alt={candidateName} 
                 className="w-full h-full object-cover"
               />
@@ -403,20 +414,23 @@ const Navbar: React.FC<{
 // ADMIN LOGIN WITH GOOGLE AUTH
 const AdminLogin: React.FC<{ 
   currentUser: FirebaseUser | null;
+  candidate?: CandidateProfile;
   onLoginSuccess: () => void;
-}> = ({ currentUser, onLoginSuccess }) => {
+}> = ({ currentUser, candidate, onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const allowedEmails = [AUTHORIZED_ADMIN_EMAIL, ...(candidate?.authorizedEmails || [])];
 
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     setError('');
     try {
       const user = await loginWithGoogle();
-      if (user.email === AUTHORIZED_ADMIN_EMAIL) {
+      if (checkIsAdmin(user.email, candidate?.authorizedEmails)) {
         onLoginSuccess();
       } else {
-        setError(`আপনার লগইনকৃত ইমেইল: ${user.email}। এডমিন প্যানেলের অনুমোদিত ইমেইল: ${AUTHORIZED_ADMIN_EMAIL}।`);
+        setError(`আপনার লগইনকৃত ইমেইল: ${user.email}। এডমিন প্যানেলের অনুমোদিত ইমেইল: ${allowedEmails.join(', ')}।`);
       }
     } catch (err) {
       setError('গুগল লগইন সম্পন্ন করা যায়নি। অনুগ্রহ করে পপ-আপ অনুমোদন করুন।');
@@ -431,27 +445,31 @@ const AdminLogin: React.FC<{
         {/* Candidate Icon / Avatar */}
         <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-emerald-600 mx-auto mb-4 shadow-lg bg-emerald-900">
           <img 
-            src="/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg" 
-            alt="মোহাম্মদ জাহাঙ্গীর আলম" 
+            src={candidate?.image || '/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg'} 
+            alt={candidate?.name || 'প্রার্থী'} 
             className="w-full h-full object-cover"
           />
         </div>
 
         <div className="inline-block px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-black uppercase tracking-wider mb-2">
-          ১ নং বদলগাছী ইউনিয়ন পরিষদ
+          {candidate?.union || '১ নং বদলগাছী ইউনিয়ন পরিষদ'}
         </div>
 
         <h2 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">
           অ্যাডমিন প্যানেল প্রবেশ
         </h2>
         <p className="text-slate-500 text-xs sm:text-sm mb-6 leading-relaxed">
-          সেবা সুবিধা, ক্যাম্পেইন স্লাইডশো, সংবাদ এবং নাগরিক রিপোর্ট ব্যবস্থাপনার জন্য অফিসিয়াল গুগল অ্যাকাউন্টে সাইন-ইন করুন।
+          {candidate?.name || 'চেয়ারম্যান পদপ্রার্থী'} এর ডিজিটাল সেবা, ক্যাম্পেইন স্লাইডশো, সংবাদ এবং নাগরিক রিপোর্ট ব্যবস্থাপনার জন্য অফিসিয়াল গুগল অ্যাকাউন্টে সাইন-ইন করুন।
         </p>
 
         {/* Authorized Email Card */}
         <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 mb-6 text-left">
-          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">অনুমোদিত অ্যাডমিন ইমেইল:</p>
-          <p className="text-sm font-mono font-bold text-emerald-800">{AUTHORIZED_ADMIN_EMAIL}</p>
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">অনুমোদিত অ্যাডমিন ইমেইলসমূহ:</p>
+          <div className="space-y-1 mt-1">
+            {allowedEmails.map((em, i) => (
+              <p key={i} className="text-xs font-mono font-bold text-emerald-800">• {em}</p>
+            ))}
+          </div>
         </div>
 
         {error && (
@@ -527,7 +545,7 @@ const Footer: React.FC<{ candidate: CandidateProfile }> = ({ candidate }) => {
           <div className="md:col-span-2 space-y-4">
             <div className="flex items-center space-x-3">
               <img 
-                src="/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg" 
+                src={candidate.image || '/assets/aistudio/FB_IMG_1793299488752_13af9b31.jpg'} 
                 alt={candidate.name} 
                 className="w-12 h-12 rounded-xl object-cover border-2 border-emerald-500"
               />
@@ -537,14 +555,14 @@ const Footer: React.FC<{ candidate: CandidateProfile }> = ({ candidate }) => {
               </div>
             </div>
             <p className="text-slate-400 text-sm leading-relaxed max-w-md">
-              "সুখে দুঃখে যাকে পাই, সে আমাদের জাহাঙ্গীর আলম ভাই — চলো একসাথে গড়ি বদলগাছী ইউনিয়ন।"
+              "{candidate.slogan} {candidate.sloganSecondary ? `— ${candidate.sloganSecondary}` : ''}"
             </p>
             <div className="text-xs text-slate-400 space-y-1">
               <p className="flex items-center gap-1.5">
                 <MapPin className="w-3.5 h-3.5 text-emerald-400" /> {candidate.officeAddress}
               </p>
               <p className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-emerald-400" /> হটলাইন: ০১৭১১-XXXXXX
+                <Phone className="w-3.5 h-3.5 text-emerald-400" /> হটলাইন: {candidate.phone || '০১৭১১-XXXXXX'}
               </p>
             </div>
           </div>
@@ -579,7 +597,7 @@ const Footer: React.FC<{ candidate: CandidateProfile }> = ({ candidate }) => {
 
         {/* Bottom copyright */}
         <div className="pt-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-4">
-          <p>© {new Date().getFullYear()} মুহাম্মদ জাহাঙ্গীর আলম — চেয়ারম্যান পদপ্রার্থী, ১ নং বদলগাছী ইউনিয়ন পরিষদ। সর্বস্বত্ব সংরক্ষিত।</p>
+          <p>© {new Date().getFullYear()} {candidate.name} — {candidate.designation}, {candidate.union}। সর্বস্বত্ব সংরক্ষিত।</p>
           <p className="flex items-center gap-1">
             <span>জনকল্যাণে ও প্রযুক্তিতে সমৃদ্ধ ইউনিয়ন</span>
             <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500" />

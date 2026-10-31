@@ -17,14 +17,15 @@ import {
   PhoneCall,
   Activity
 } from 'lucide-react';
-import { CitizenReport, ReportStatus } from '../types';
+import { CitizenReport, ReportStatus, CandidateProfile } from '../types';
 import { CATEGORY_MAP, STATUS_MAP, STATUS_COLORS } from '../constants';
 
 interface TrackReportProps {
   reports: CitizenReport[];
+  candidate?: CandidateProfile;
 }
 
-const TrackReport: React.FC<TrackReportProps> = ({ reports }) => {
+const TrackReport: React.FC<TrackReportProps> = ({ reports, candidate }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState<ReportStatus | 'All'>('All');
   const [selectedReport, setSelectedReport] = useState<CitizenReport | null>(null);
@@ -54,13 +55,13 @@ const TrackReport: React.FC<TrackReportProps> = ({ reports }) => {
           <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
             স্বচ্ছতা ও জবাবদিহিতা
           </span>
-          <span className="text-xs text-slate-500 font-semibold">১ নং বদলগাছী ইউনিয়ন</span>
+          <span className="text-xs text-slate-500 font-semibold">{candidate?.union || '১ নং বদলগাছী ইউনিয়ন'}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
           রিপোর্ট ও অভিযোগ ট্র্যাকিং
         </h1>
         <p className="text-slate-600 text-sm sm:text-base mt-2">
-          আপনার ট্র্যাকিং আইডি অথবা মোবাইল নম্বর দিয়ে সমস্যার বর্তমান অবস্থা এবং প্রার্থী মুহাম্মদ জাহাঙ্গীর আলমের টিমের গৃহীত পদক্ষেপ জানুন।
+          আপনার ট্র্যাকিং আইডি অথবা মোবাইল নম্বর দিয়ে সমস্যার বর্তমান অবস্থা এবং {candidate?.designation || 'চেয়ারম্যান পদপ্রার্থী'} {candidate?.name || 'প্রার্থী'}-র টিমের গৃহীত পদক্ষেপ জানুন।
         </p>
       </div>
 

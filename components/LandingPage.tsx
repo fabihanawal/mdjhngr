@@ -126,7 +126,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
       
       {/* 1. HERO SLIDESHOW SECTION */}
       <section 
-        className="relative min-h-[680px] sm:min-h-[620px] lg:h-[700px] w-full overflow-hidden bg-emerald-950 select-none pb-12 sm:pb-0"
+        className="relative min-h-[580px] sm:min-h-[580px] lg:min-h-[640px] lg:h-[680px] w-full overflow-hidden bg-emerald-950 select-none pb-10 sm:pb-0 flex items-center"
         onMouseEnter={() => setIsPaused(true)}
         onMouseLeave={() => setIsPaused(false)}
       >
@@ -135,8 +135,8 @@ const LandingPage: React.FC<LandingPageProps> = ({
           return (
             <div
               key={slide.id}
-              className={`absolute inset-0 transition-all duration-1000 ease-in-out ${
-                isActive ? 'opacity-100 scale-100 z-10' : 'opacity-0 scale-105 pointer-events-none z-0'
+              className={`absolute inset-0 transition-all duration-1000 ease-in-out flex items-center ${
+                isActive ? 'opacity-100 scale-100 z-10 pointer-events-auto' : 'opacity-0 scale-105 pointer-events-none z-0'
               }`}
             >
               {/* Background gradient with subtle overlay */}
@@ -150,58 +150,58 @@ const LandingPage: React.FC<LandingPageProps> = ({
               </div>
 
               {/* Slide Content */}
-              <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center py-6 sm:py-8 lg:py-0">
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-center w-full">
+              <div className="relative z-20 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 w-full py-4 sm:py-6 lg:py-0">
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 lg:gap-12 items-center w-full">
                   
                   {/* Candidate Poster Display - Prominent and fully framed on mobile & desktop */}
                   <div className="lg:col-span-5 order-1 lg:order-2 flex justify-center">
-                    <div className="relative group max-w-[260px] sm:max-w-[320px] lg:max-w-[380px] rounded-3xl overflow-hidden border-2 sm:border-4 border-emerald-400/40 shadow-2xl bg-emerald-900/60 backdrop-blur-sm">
+                    <div className="relative group max-w-[200px] xs:max-w-[230px] sm:max-w-[280px] lg:max-w-[360px] rounded-2xl sm:rounded-3xl overflow-hidden border-2 sm:border-4 border-emerald-400/40 shadow-2xl bg-emerald-900/80 backdrop-blur-sm">
                       <img
                         src={slide.imageUrl}
-                        alt="মুহাম্মদ জাহাঙ্গীর আলম - চেয়ারম্যান পদপ্রার্থী"
-                        className="w-full max-h-[260px] sm:max-h-[320px] lg:max-h-[440px] object-contain sm:object-cover mx-auto rounded-2xl transition-transform duration-500 group-hover:scale-105"
+                        alt={`${mpData.name} - ${mpData.designation}`}
+                        className="w-full max-h-[190px] xs:max-h-[220px] sm:max-h-[290px] lg:max-h-[420px] object-contain sm:object-cover mx-auto transition-transform duration-500 group-hover:scale-105"
                       />
-                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-950 via-emerald-950/90 to-transparent p-3 sm:p-4 text-center">
-                        <p className="text-white font-black text-sm sm:text-base lg:text-lg">মুহাম্মদ জাহাঙ্গীর আলম</p>
-                        <p className="text-emerald-300 text-[10px] sm:text-xs font-semibold">চেয়ারম্যান পদপ্রার্থী | ১ নং বদলগাছী ইউনিয়ন পরিষদ</p>
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-emerald-950 via-emerald-950/90 to-transparent p-2 sm:p-4 text-center">
+                        <p className="text-white font-black text-xs sm:text-base lg:text-lg leading-tight">{mpData.name}</p>
+                        <p className="text-emerald-300 text-[9px] sm:text-xs font-semibold mt-0.5">{mpData.designation} | {mpData.union}</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Text Column */}
-                  <div className="lg:col-span-7 order-2 lg:order-1 space-y-3 sm:space-y-5 text-white text-center lg:text-left animate-in slide-in-from-left-6 duration-700">
-                    <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 rounded-full bg-emerald-800/80 border border-emerald-400/40 backdrop-blur-md text-emerald-300 text-[11px] sm:text-xs font-bold tracking-wider uppercase shadow-md">
-                      <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-                      <span>{slide.badge || '১ নং বদলগাছী ইউনিয়ন পরিষদ নির্বাচন'}</span>
+                  <div className="lg:col-span-7 order-2 lg:order-1 space-y-2.5 sm:space-y-4 text-white text-center lg:text-left animate-in slide-in-from-left-6 duration-700">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-800/80 border border-emerald-400/40 backdrop-blur-md text-emerald-300 text-[10px] sm:text-xs font-bold tracking-wider uppercase shadow-md">
+                      <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
+                      <span>{slide.badge || `${mpData.union} নির্বাচন`}</span>
                     </div>
 
-                    <div className="space-y-2">
+                    <div className="space-y-1 sm:space-y-2">
                       {slide.subtitle && (
-                        <p className="text-emerald-300 font-bold text-sm sm:text-lg tracking-wide">
+                        <p className="text-emerald-300 font-bold text-xs sm:text-base lg:text-lg tracking-wide">
                           {slide.subtitle}
                         </p>
                       )}
-                      <h1 className="text-2xl sm:text-4xl lg:text-6xl font-black leading-tight tracking-tight drop-shadow-md">
+                      <h1 className="text-xl sm:text-3xl lg:text-5xl font-black leading-snug sm:leading-tight tracking-tight drop-shadow-md">
                         {slide.title}
                       </h1>
                     </div>
 
-                    <p className="text-xs sm:text-base lg:text-lg text-emerald-100/90 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal">
+                    <p className="text-xs sm:text-sm lg:text-base text-emerald-100/90 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-normal line-clamp-2 sm:line-clamp-none">
                       {slide.description}
                     </p>
 
-                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 pt-2 sm:pt-4">
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5 sm:gap-3 pt-1 sm:pt-3">
                       <Link 
                         to="/report" 
-                        className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black px-6 sm:px-8 py-3.5 rounded-2xl flex items-center shadow-xl shadow-emerald-500/30 transition-all hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
+                        className="bg-emerald-500 hover:bg-emerald-400 text-emerald-950 font-black px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl flex items-center shadow-xl shadow-emerald-500/30 transition-all hover:-translate-y-0.5 active:scale-95 text-xs sm:text-sm"
                       >
-                        <PlusCircle className="mr-2 w-4 h-4 text-emerald-950" />
+                        <PlusCircle className="mr-1.5 w-4 h-4 text-emerald-950" />
                         সমস্যা বা উন্নয়ন প্রস্তাব জানান
                       </Link>
                       
                       <a 
                         href="#services" 
-                        className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-bold px-5 sm:px-7 py-3.5 rounded-2xl transition-all shadow-lg flex items-center text-xs sm:text-sm"
+                        className="bg-white/10 hover:bg-white/20 text-white border border-white/20 backdrop-blur-md font-bold px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl transition-all shadow-lg flex items-center text-xs sm:text-sm"
                       >
                         নাগরিক সেবা ও তথ্য <ChevronRight className="ml-1 w-4 h-4" />
                       </a>
@@ -231,13 +231,13 @@ const LandingPage: React.FC<LandingPageProps> = ({
         </button>
 
         {/* Slide Indicators / Dots */}
-        <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 flex space-x-2.5 z-30">
+        <div className="absolute bottom-2.5 sm:bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-30">
           {slides.map((_, index) => (
             <button
               key={index}
               onClick={() => setCurrentSlide(index)}
               className={`h-2 rounded-full transition-all duration-300 ${
-                index === currentSlide ? 'bg-emerald-400 w-8' : 'bg-white/30 hover:bg-white/60 w-2.5'
+                index === currentSlide ? 'bg-emerald-400 w-7' : 'bg-white/30 hover:bg-white/60 w-2'
               }`}
               aria-label={`Go to slide ${index + 1}`}
             />
@@ -246,53 +246,71 @@ const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       {/* 2. COMPACT, NON-INTRUSIVE EMERGENCY HOTLINE BAR */}
-      <section className="bg-emerald-800 text-white py-2 px-3 sm:px-4 shadow-sm border-t border-emerald-700">
-        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto scrollbar-none py-1">
-          <div className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-emerald-700">
+      <section className="bg-emerald-900/95 text-white py-2 px-3 sm:px-4 shadow-sm border-t border-emerald-800">
+        <div className="max-w-7xl mx-auto flex items-center gap-2 overflow-x-auto scrollbar-none py-0.5">
+          <div className="flex items-center gap-1.5 shrink-0 pr-2 border-r border-emerald-700/80">
             <span className="w-2 h-2 rounded-full bg-red-400 animate-ping"></span>
-            <span className="text-[11px] font-black uppercase text-amber-300 tracking-wider">জরুরি হটলাইন:</span>
+            <span className="text-[11px] font-black uppercase text-amber-300 tracking-wider">
+              {mpData.union} জরুরি সেবা:
+            </span>
           </div>
 
           <div className="flex items-center gap-2 text-xs font-semibold shrink-0">
-            <a 
-              href="tel:01715778899"
-              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
-            >
-              <Phone className="w-3 h-3 text-amber-300" />
-              <span>অ্যাম্বুলেন্স: <strong className="text-white">০১৭১৫-৭৭৮৮৯৯</strong></span>
-            </a>
+            {emergencyContacts && emergencyContacts.length > 0 ? (
+              emergencyContacts.map((contact) => (
+                <a 
+                  key={contact.id}
+                  href={`tel:${contact.phone}`}
+                  className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-800 px-3 py-1.5 rounded-full border border-emerald-600/60 transition-colors shrink-0 text-emerald-100"
+                  title={`${contact.title} (${contact.availableHours})`}
+                >
+                  <Phone className="w-3 h-3 text-amber-300 shrink-0" />
+                  <span>{contact.title}: <strong className="text-white font-mono">{contact.phone}</strong></span>
+                </a>
+              ))
+            ) : (
+              <>
+                <a 
+                  href="tel:01715778899"
+                  className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-800 px-3 py-1.5 rounded-full border border-emerald-600/60 transition-colors shrink-0 text-emerald-100"
+                >
+                  <Phone className="w-3 h-3 text-amber-300 shrink-0" />
+                  <span>অ্যাম্বুলেন্স: <strong className="text-white font-mono">০১৭১৫-৭৭৮৮৯৯</strong></span>
+                </a>
 
-            <a 
-              href="tel:01320143522"
-              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
-            >
-              <Phone className="w-3 h-3 text-blue-300" />
-              <span>থানা পুলিশ: <strong className="text-white">০১৩২০-১৪৩৫২২</strong></span>
-            </a>
+                <a 
+                  href="tel:01320143522"
+                  className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-800 px-3 py-1.5 rounded-full border border-emerald-600/60 transition-colors shrink-0 text-emerald-100"
+                >
+                  <Phone className="w-3 h-3 text-blue-300 shrink-0" />
+                  <span>থানা পুলিশ: <strong className="text-white font-mono">০১৩২০-১৪৩৫২২</strong></span>
+                </a>
 
-            <a 
-              href="tel:01718445566"
-              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
-            >
-              <Phone className="w-3 h-3 text-rose-300" />
-              <span>রক্তদান: <strong className="text-white">০১৭১৮-৪৪৫৫৬৬</strong></span>
-            </a>
+                <a 
+                  href="tel:01718445566"
+                  className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-800 px-3 py-1.5 rounded-full border border-emerald-600/60 transition-colors shrink-0 text-emerald-100"
+                >
+                  <Phone className="w-3 h-3 text-rose-300 shrink-0" />
+                  <span>রক্তদান: <strong className="text-white font-mono">০১৭১৮-৪৪৫৫৬৬</strong></span>
+                </a>
 
-            <a 
-              href="tel:01730324500"
-              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
-            >
-              <Phone className="w-3 h-3 text-emerald-300" />
-              <span>হাসপাতাল: <strong className="text-white">০১৭৩০-৩২৪৫০০</strong></span>
-            </a>
+                <a 
+                  href="tel:01730324500"
+                  className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-800 px-3 py-1.5 rounded-full border border-emerald-600/60 transition-colors shrink-0 text-emerald-100"
+                >
+                  <Phone className="w-3 h-3 text-emerald-300 shrink-0" />
+                  <span>হাসপাতাল: <strong className="text-white font-mono">০১৭৩০-৩২৪৫০০</strong></span>
+                </a>
 
-            <a 
-              href="tel:01716123456"
-              className="flex items-center gap-1.5 bg-emerald-900/70 hover:bg-emerald-900 px-3 py-1.5 rounded-full border border-emerald-600/70 transition-colors shrink-0 text-emerald-100"
-            >
-              <Phone className="w-3 h-3 text-yellow-300" />
-              <span>ফায়ার সার্ভিস: <strong className="text-white">০১৭১৬-১২৩৪৫৬</strong></span>
-            </a>
+                <a 
+                  href="tel:01716123456"
+                  className="flex items-center gap-1.5 bg-emerald-950/80 hover:bg-emerald-800 px-3 py-1.5 rounded-full border border-emerald-600/60 transition-colors shrink-0 text-emerald-100"
+                >
+                  <Phone className="w-3 h-3 text-yellow-300 shrink-0" />
+                  <span>ফায়ার সার্ভিস: <strong className="text-white font-mono">০১৭১৬-১২৩৪৫৬</strong></span>
+                </a>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -334,10 +352,14 @@ const LandingPage: React.FC<LandingPageProps> = ({
                 <span>জনগণের সেবায় নিবেদিতপ্রাণ</span>
               </div>
 
-              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
-                "সুখে দুঃখে যাকে পাই,<br />
-                <span className="text-emerald-700">সে আমাদের জাহাঙ্গীর আলম ভাই"</span>
+              <h2 className="text-2xl sm:text-4xl lg:text-5xl font-black text-slate-900 leading-tight">
+                "{mpData.slogan}"
               </h2>
+              {mpData.sloganSecondary && (
+                <p className="text-emerald-700 font-bold text-lg sm:text-xl">
+                  {mpData.sloganSecondary}
+                </p>
+              )}
 
               <p className="text-lg text-slate-600 leading-relaxed font-normal">
                 {mpData.bio}
@@ -384,13 +406,13 @@ const LandingPage: React.FC<LandingPageProps> = ({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-3xl mx-auto mb-16">
             <span className="text-emerald-400 font-black text-xs uppercase tracking-widest bg-emerald-950/80 border border-emerald-500/30 px-4 py-1.5 rounded-full inline-block mb-3">
-              ১ নং বদলগাছী ইউনিয়ন পরিষদ নির্বাচন
+              {mpData.union} নির্বাচন
             </span>
             <h2 className="text-3xl sm:text-5xl font-black tracking-tight mb-4">
               উন্নয়নের ৯ দফা অঙ্গীকার ও ইশতেহার
             </h2>
             <p className="text-slate-300 text-base sm:text-lg">
-              চেয়ারম্যান পদপ্রার্থী মুহাম্মদ জাহাঙ্গীর আলমের নেতৃত্বে আধুনিক, স্বাবলম্বী ও দুর্নীতিমুক্ত বদলগাছী ইউনিয়ন গড়ার সুনির্দিষ্ট রূপরেখা।
+              {mpData.designation} {mpData.name}-এর নেতৃত্বে আধুনিক, স্বাবলম্বী ও দুর্নীতিমুক্ত {mpData.union} গড়ার সুনির্দিষ্ট রূপরেখা।
             </p>
           </div>
 
@@ -443,7 +465,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
               শিক্ষা, স্বাস্থ্য, চাকরি ও নাগরিক সেবা ডিরেক্টরি
             </h2>
             <p className="text-slate-600 text-base">
-              বদলগাছী ইউনিয়নবাসীর কল্যাণে প্রয়োজনীয় সকল তথ্য, সরকারি সুযোগ-সুবিধা এবং প্রার্থীর বিশেষ সহায়তাসমূহ এক ঠিকানায়।
+              {mpData.union}বাসীর কল্যাণে প্রয়োজনীয় সকল তথ্য, সরকারি সুযোগ-সুবিধা এবং প্রার্থীর বিশেষ সহায়তাসমূহ এক ঠিকানায়।
             </p>
           </div>
 
@@ -597,7 +619,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
                 আপনার এলাকার রাস্তা, ড্রেন, বিদ্যুৎ বা সামাজিক সমস্যা আছে?
               </h2>
               <p className="text-emerald-100 text-base sm:text-lg max-w-2xl font-normal leading-relaxed">
-                চেয়ারম্যান পদপ্রার্থী মুহাম্মদ জাহাঙ্গীর আলমের টিম প্রতিটি সমস্যা গুরুত্বের সাথে নথিভুক্ত করে প্রয়োজনীয় প্রতিকারমূলক পদক্ষেপ গ্রহণে অঙ্গীকারবদ্ধ। বেনামেও রিপোর্ট করতে পারেন।
+                {mpData.designation} {mpData.name}-এর সেবাকেন্দ্রে প্রতিটি সমস্যা গুরুত্বের সাথে নথিভুক্ত করে প্রয়োজনীয় প্রতিকারমূলক পদক্ষেপ গ্রহণে অঙ্গীকারবদ্ধ। বেনামেও রিপোর্ট করতে পারেন।
               </p>
             </div>
 
@@ -633,7 +655,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
               </h2>
             </div>
             <p className="text-slate-500 text-sm mt-2 md:mt-0 max-w-md">
-              ১ নং বদলগাছী ইউনিয়নের ওয়ার্ডে ওয়ার্ডে সাধারণ মানুষের সাথে মতবিনিময় ও উন্নয়ন কর্মকাণ্ডের সর্বশেষ চিত্র।
+              {mpData.union}-এর ওয়ার্ডে ওয়ার্ডে সাধারণ মানুষের সাথে মতবিনিময় ও উন্নয়ন কর্মকাণ্ডের সর্বশেষ চিত্র।
             </p>
           </div>
 
@@ -693,11 +715,11 @@ const LandingPage: React.FC<LandingPageProps> = ({
           </div>
 
           <h2 className="text-3xl sm:text-4xl font-black text-slate-900 mb-4">
-            জাহাঙ্গীর ভাইয়ের সততা ও উন্নয়নের পাশে থাকুন
+            {mpData.name}-এর সততা ও উন্নয়নের পাশে থাকুন
           </h2>
 
           <p className="text-slate-600 text-base sm:text-lg mb-8 max-w-2xl mx-auto leading-relaxed">
-            ১ নং বদলগাছী ইউনিয়নকে দুর্নীতিমুক্ত ও একটি আধুনিক মডেল ইউনিয়নে রূপ দিতে আপনার দোয়া, সমর্থন ও একাত্মতা প্রকাশ করুন।
+            {mpData.union}কে দুর্নীতিমুক্ত ও একটি আধুনিক মডেল ইউনিয়নে রূপ দিতে আপনার দোয়া, সমর্থন ও একাত্মতা প্রকাশ করুন।
           </p>
 
           <div className="bg-white p-8 rounded-3xl shadow-lg border border-emerald-200/80 max-w-xl mx-auto">

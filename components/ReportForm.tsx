@@ -17,15 +17,15 @@ import {
   Phone,
   FileCheck
 } from 'lucide-react';
-import { CATEGORY_MAP, WARDS_LIST } from '../constants';
-import { CitizenReport, ReportCategory } from '../types';
+import { CitizenReport, ReportCategory, CandidateProfile } from '../types';
 import { addReportToDb } from '../services/firebase';
 
 interface ReportFormProps {
   onSubmit: (report: CitizenReport) => void;
+  candidate?: CandidateProfile;
 }
 
-const ReportForm: React.FC<ReportFormProps> = ({ onSubmit }) => {
+const ReportForm: React.FC<ReportFormProps> = ({ onSubmit, candidate }) => {
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [trackingId, setTrackingId] = useState('');
@@ -33,11 +33,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit }) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState<string>('');
   
+  const wardOptions = (candidate?.wards && candidate.wards.length > 0) ? candidate.wards : WARDS_LIST;
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     category: 'Roads' as ReportCategory,
-    ward: '১ নং ওয়ার্ড',
+    ward: wardOptions[0] || '১ নং ওয়ার্ড',
     location: '',
     name: '',
     phone: '',
@@ -63,6 +65,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit }) => {
     e.preventDefault();
     setIsSubmitting(true);
     
+    const candidateName = candidate?.name || 'চেয়ারম্যান প্রার্থী';
     const newId = `TRK-${Math.floor(1000 + Math.random() * 9000)}`;
     const newReport: CitizenReport = {
       id: newId,
@@ -78,7 +81,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit }) => {
       isAnonymous,
       status: 'Pending',
       createdAt: new Date().toISOString().split('T')[0],
-      adminNotes: 'রিপোর্টটি গ্রহণ করা হয়েছে। মোহাম্মদ জাহাঙ্গীর আলমের সেবাকর্মী দল শীঘ্রই বিষয়টি খতিয়ে দেখবে।'
+      adminNotes: `রিপোর্টটি গ্রহণ করা হয়েছে। ${candidateName}-এর সেবাকর্মী দল শীঘ্রই বিষয়টি খতিয়ে দেখবে।`
     };
     
     try {
@@ -109,7 +112,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit }) => {
           
           <h2 className="text-3xl font-black text-slate-900 mb-3">রিপোর্ট সফলভাবে জমা হয়েছে!</h2>
           <p className="text-slate-600 font-medium mb-8 leading-relaxed text-sm sm:text-base">
-            ১ নং বদলগাছী ইউনিয়ন পরিষদ নির্বাচনে চেয়ারম্যান পদপ্রার্থী <span className="font-bold text-emerald-800">মুহাম্মদ জাহাঙ্গীর আলমের</span> অভিযোগ ও উন্নয়ন প্রস্তাব সেলে আপনার রিপোর্টটি নথিভুক্ত হয়েছে।
+            {candidate?.union || 'ইউনিয়ন পরিষদ'} নির্বাচনে {candidate?.designation || 'চেয়ারম্যান পদপ্রার্থী'} <span className="font-bold text-emerald-800">{candidate?.name || 'প্রার্থী'}</span>-এর অভিযোগ ও উন্নয়ন প্রস্তাব সেলে আপনার রিপোর্টটি নথিভুক্ত হয়েছে।
           </p>
 
           <div className="bg-emerald-50/70 p-6 rounded-2xl border border-emerald-200/80 mb-8 text-center">
@@ -158,13 +161,13 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit }) => {
           <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-full text-xs font-bold">
             নাগরিক অংশগ্রহণ
           </span>
-          <span className="text-xs text-slate-500 font-semibold">১ নং বদলগাছী ইউনিয়ন</span>
+          <span className="text-xs text-slate-500 font-semibold">{candidate?.union || '১ নং বদলগাছী ইউনিয়ন'}</span>
         </div>
         <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">
           এলাকার সমস্যা বা উন্নয়ন প্রস্তাব জমা দিন
         </h1>
         <p className="text-slate-600 text-sm sm:text-base mt-2">
-          রাস্তাঘাট, জলাবদ্ধতা, বিদ্যুৎ, ড্রেনেজ, স্বাস্থ্য বা কৃষি সংক্রান্ত যেকোনো অসুবিধা সম্পর্কে চেয়ারম্যান পদপ্রার্থী মুহাম্মদ জাহাঙ্গীর আলমকে সরাসরি জানান।
+          রাস্তাঘাট, জলাবদ্ধতা, বিদ্যুৎ, ড্রেনেজ, স্বাস্থ্য বা কৃষি সংক্রান্ত যেকোনো অসুবিধা সম্পর্কে {candidate?.designation || 'চেয়ারম্যান পদপ্রার্থী'} {candidate?.name || 'প্রার্থী'}-কে সরাসরি জানান।
         </p>
       </div>
 
@@ -235,7 +238,7 @@ const ReportForm: React.FC<ReportFormProps> = ({ onSubmit }) => {
                   onChange={(e) => setFormData({ ...formData, ward: e.target.value })}
                   className="w-full p-3.5 rounded-xl border border-slate-200 bg-white font-semibold text-sm outline-none focus:border-emerald-600 focus:ring-2 focus:ring-emerald-500/20"
                 >
-                  {WARDS_LIST.map((w) => (
+                  {wardOptions.map((w) => (
                     <option key={w} value={w}>{w}</option>
                   ))}
                 </select>
