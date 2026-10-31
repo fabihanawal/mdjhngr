@@ -1,0 +1,176 @@
+{
+  "entities": {
+    "Report": {
+      "title": "CitizenReport",
+      "description": "Citizen issue report or development proposal submitted to candidate office",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique report ID, e.g. TRK-1234"
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the problem or proposal",
+          "maxLength": 200
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed explanation of the issue",
+          "maxLength": 3000
+        },
+        "category": {
+          "type": "string",
+          "description": "Category such as Roads, Health, Education, Electricity, Social, Other"
+        },
+        "location": {
+          "type": "string",
+          "description": "Village, ward or road location in Badalgachhi UP",
+          "maxLength": 200
+        },
+        "ward": {
+          "type": "string",
+          "description": "Ward number 1 to 9",
+          "maxLength": 10
+        },
+        "isAnonymous": {
+          "type": "boolean",
+          "description": "Whether citizen filed anonymously"
+        },
+        "name": {
+          "type": "string",
+          "description": "Citizen name if not anonymous",
+          "maxLength": 100
+        },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone number",
+          "maxLength": 30
+        },
+        "nid": {
+          "type": "string",
+          "description": "Citizen NID number (optional)",
+          "maxLength": 30
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "Photo of the issue if uploaded",
+          "maxLength": 500000
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Pending", "In Progress", "Resolved"],
+          "description": "Current resolution status"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "ISO date string or timestamp"
+        },
+        "adminNotes": {
+          "type": "string",
+          "description": "Action taken or official remarks from candidate team",
+          "maxLength": 1000
+        }
+      },
+      "required": ["id", "title", "description", "category", "location", "status", "createdAt"]
+    },
+    "Slide": {
+      "title": "Slide",
+      "description": "Campaign hero banner slideshow item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 1000 },
+        "imageUrl": { "type": "string", "maxLength": 500000 },
+        "badge": { "type": "string", "maxLength": 100 }
+      },
+      "required": ["id", "title", "imageUrl"]
+    },
+    "Service": {
+      "title": "ServiceContent",
+      "description": "Citizen welfare service, education, medical or job aid item",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "category": { "type": "string" },
+        "title": { "type": "string", "maxLength": 200 },
+        "description": { "type": "string", "maxLength": 2000 },
+        "link": { "type": "string", "maxLength": 500 },
+        "contactPhone": { "type": "string", "maxLength": 50 },
+        "isNew": { "type": "boolean" }
+      },
+      "required": ["id", "category", "title", "description"]
+    },
+    "News": {
+      "title": "NewsItem",
+      "description": "Campaign news, rally updates and announcements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 300 },
+        "content": { "type": "string", "maxLength": 5000 },
+        "date": { "type": "string", "maxLength": 50 },
+        "imageUrl": { "type": "string", "maxLength": 500000 }
+      },
+      "required": ["id", "title", "content", "date"]
+    },
+    "CandidateProfile": {
+      "title": "CandidateProfile",
+      "description": "Profile, vision and manifesto of Chairman candidate Jahangir Alam",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "maxLength": 100 },
+        "title": { "type": "string", "maxLength": 100 },
+        "constituency": { "type": "string", "maxLength": 150 },
+        "slogan": { "type": "string", "maxLength": 250 },
+        "image": { "type": "string", "maxLength": 500000 },
+        "bio": { "type": "string", "maxLength": 3000 },
+        "vision": { "type": "string", "maxLength": 3000 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "email": { "type": "string", "maxLength": 100 },
+        "officeAddress": { "type": "string", "maxLength": 300 }
+      },
+      "required": ["name", "constituency"]
+    },
+    "EmergencyContact": {
+      "title": "EmergencyContact",
+      "description": "Emergency services hotline such as ambulance, medical, fire service",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 50 },
+        "phone": { "type": "string", "maxLength": 50 },
+        "availableHours": { "type": "string", "maxLength": 50 }
+      },
+      "required": ["id", "title", "phone"]
+    }
+  },
+  "firestore": {
+    "/reports/{reportId}": {
+      "schema": "Report",
+      "description": "Collection of citizen reports and complaints"
+    },
+    "/slides/{slideId}": {
+      "schema": "Slide",
+      "description": "Hero section campaign slider slides"
+    },
+    "/services/{serviceId}": {
+      "schema": "Service",
+      "description": "Citizen public services in education, health, jobs, agriculture"
+    },
+    "/news/{newsId}": {
+      "schema": "News",
+      "description": "Election campaign news and updates"
+    },
+    "/candidateProfile/{profileId}": {
+      "schema": "CandidateProfile",
+      "description": "Main candidate profile and election manifesto"
+    },
+    "/emergencyContacts/{contactId}": {
+      "schema": "EmergencyContact",
+      "description": "Hotlines and emergency contacts for Badalgachhi UP"
+    }
+  }
+}

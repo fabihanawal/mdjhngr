@@ -1,0 +1,86 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        request.auth.token.email == 'rstsbd@gmail.com' ||
+        (request.auth.token.email_verified == true && request.auth.token.email == 'rstsbd@gmail.com') ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    function isValidReport(data) {
+      return data.id is string && data.id.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 3000 &&
+             data.category is string && data.category.size() <= 100 &&
+             data.location is string && data.location.size() <= 200 &&
+             data.status in ['Pending', 'In Progress', 'Resolved'] &&
+             data.createdAt is string && data.createdAt.size() <= 100;
+    }
+
+    // Citizen reports: Public can create report and track their report
+    match /reports/{reportId} {
+      allow get, list: if true;
+      allow create: if isValidId(reportId) && isValidReport(incoming());
+      allow update, delete: if isValidId(reportId) && isAdmin();
+    }
+
+    // Hero slideshow items: Public read, Admin write
+    match /slides/{slideId} {
+      allow read: if true;
+      allow write: if isValidId(slideId) && isAdmin();
+    }
+
+    // Citizen services (Education, Health, Jobs, Welfare): Public read, Admin write
+    match /services/{serviceId} {
+      allow read: if true;
+      allow write: if isValidId(serviceId) && isAdmin();
+    }
+
+    // News and campaign updates: Public read, Admin write
+    match /news/{newsId} {
+      allow read: if true;
+      allow write: if isValidId(newsId) && isAdmin();
+    }
+
+    // Candidate profile, manifesto and bio: Public read, Admin write
+    match /candidateProfile/{profileId} {
+      allow read: if true;
+      allow write: if isValidId(profileId) && isAdmin();
+    }
+
+    // Emergency hotlines: Public read, Admin write
+    match /emergencyContacts/{contactId} {
+      allow read: if true;
+      allow write: if isValidId(contactId) && isAdmin();
+    }
+
+    // Admins registry: only authenticated admins
+    match /admins/{adminId} {
+      allow read, write: if isValidId(adminId) && isAdmin();
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "জনগণের প্রতিনিধি (People's Representative)",
+  "description": "An interactive MP-Citizen engagement platform for reporting local issues, suggesting improvements, and tracking community progress in Bengali.",
+  "requestFramePermissions": [
+    "camera"
+  ],
+  "majorCapabilities": []
+}
